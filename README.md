@@ -6,7 +6,7 @@ Distribuição Linux From Scratch para **aarch64 / Raspberry Pi 4B** com:
 |---|---|
 | Rato e teclado | Kernel RPi com USB xHCI (VL805) + HID + evdev; libinput + `xf86-input-libinput`; layout `pt` |
 | Memória | Kernel 64 bit (4/8 GB de RAM), swap **zram** (lz4) a 50 % da RAM, `swappiness=100` |
-| Interface visual | KMS/V3D (`vc4-kms-v3d`), Mesa, Xorg (driver modesetting), Openbox + tint2, arranque automático |
+| Interface visual | KMS/V3D (`vc4-kms-v3d`), Mesa, Xorg (driver modesetting), LXQt (leve, ideal para 2 GB) sobre Openbox, arranque automático |
 | Raspberry Pi 4B | `kernel8.img`, `start4.elf`, `fixup4.dat`, `bcm2711-rpi-4-b.dtb`, `config.txt`, `cmdline.txt` |
 
 Init: sysvinit + LFS-Bootscripts. Utilizador por omissão: `clld` / `clld` (e root com a mesma palavra-passe) - **muda-as**.
@@ -30,7 +30,8 @@ source clld-env.sh                # define $CLLD (/mnt/clld) e variáveis
 # LFS caps. 6-8: ferramentas temporárias, chroot (./02-chroot.sh) e sistema final
 #   - substituir $LFS -> $CLLD e $LFS_TGT -> $CLLD_TGT; usar os 'wget-list-sysv' já descarregados
 ./03-kernel-firmware.sh           # kernel RPi + firmware de arranque
-# BLFS: seguir 05-gui-stack.md dentro do chroot (libinput, Mesa, Xorg, Openbox...)
+# BLFS: seguir 05-gui-stack.md dentro do chroot (libinput, Mesa, Xorg, Qt6, Openbox...)
+./09-lxqt.sh                      # (dentro do chroot) compila o LXQt
 ./04-rootfs-config.sh             # hostname, fstab, zram, autologin, Xorg/Openbox, teclado/rato
 ./06-make-image.sh                # gera clld-rpi4.img
 sudo dd if=clld-rpi4.img of=/dev/sdX bs=4M conv=fsync status=progress

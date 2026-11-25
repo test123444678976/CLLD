@@ -34,13 +34,19 @@ Verificação na placa: `libinput list-devices` e `cat /proc/bus/input/devices`.
 
 O driver de vídeo é o `modesetting` embutido no xorg-server (não é preciso driver DDX extra).
 
-## 4. Ambiente de trabalho (leve)
+## 4. Ambiente de trabalho: LXQt (escolhido para 2 GB de RAM)
+Pre-requisitos de BLFS antes de correr `./09-lxqt.sh` (dentro do chroot):
+
 | Pacote | Notas |
 |---|---|
-| imlib2, cairo, pango, glib2, libxml2 | dependências |
-| openbox | gestor de janelas (`openbox-session`) |
-| tint2 | barra de tarefas |
-| (opcional) pcmanfm, leafpad, dillo/netsurf | ficheiros, editor, browser leve |
+| glib2, libexif, xcb-util-image, xcb-util-cursor | dependencias gerais |
+| **Qt6** (qtbase, qtsvg, qttools) | maior compilacao; usa `-j2` e swap em 2 GB de RAM |
+| cmake, ninja, autoconf, automake, libtool, intltool | ferramentas de compilacao |
+| openbox | gestor de janelas que o LXQt usa (configurado em `/etc/xdg/lxqt/session.conf`) |
+
+O `09-lxqt.sh` compila o resto sozinho: extra-cmake-modules, kwindowsystem, libqtxdg, liblxqt, lxqt-session, lxqt-panel,
+pcmanfm-qt (ficheiros), qterminal, lxqt-config, lxqt-runner, lxqt-notificationd, menu-cache e libfm-extra.
+Sem LXQt, o `.xinitrc` volta automaticamente para Openbox + tint2.
 
 ## 5. Rede (opcional mas útil)
 dhcpcd, wpa_supplicant + `linux-firmware` (ficheiros `brcm/*43455*` para o Wi-Fi do Pi 4).

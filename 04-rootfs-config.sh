@@ -90,12 +90,17 @@ if [ -z "$DISPLAY" ] && [ "$(tty)" = "/dev/tty1" ]; then
   exec startx -- -keeptty >~/.xorg.log 2>&1
 fi
 EOF
-cat > "$R/home/clld/.xinitrc" <<'EOF'
+cat > "$R/home/clld/.xinitrc" <<'XEOF'
+# LXQt se estiver instalado (09-lxqt.sh); senao Openbox + tint2
+if command -v startlxqt >/dev/null 2>&1; then
+  if command -v dbus-run-session >/dev/null 2>&1; then exec dbus-run-session startlxqt; fi
+  exec startlxqt
+fi
 xsetroot -solid '#1e2a3a'
 tint2 &
 xterm -geometry 100x30+40+40 &
 exec openbox-session
-EOF
+XEOF
 chmod 755 "$R/home/clld/.xinitrc"
 
 # Xorg: driver modesetting (KMS) + libinput para teclado e rato
