@@ -1,0 +1,99 @@
+name: CLLD build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      toolchain:
+        description: "Compilar também a cross-toolchain (01-toolchain.sh, ~1-2 h)"
+        type: boolean
+        default: false
+
+env:
+  CLLD: ${{ github.workspace }}/clld-out
+
+jobs:
+  lint:
+    name: Verificar scripts
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: for f in *.sh; do bash -n "$f"; done
+      - run: sudo apt-get update && sudo apt-get install -y shellcheck
+      - run: shellcheck -S error *.sh
+
+  qemu-test:
+    name: Imagem de teste qemu (aarch64)
+    needs: lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependências
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-arm cpio curl
+      - name: Construir imagem
+        run: chmod +x *.sh && ./07-qemu-test.sh
+      - name: Arrancar no qemu e verificar
+        run: |
+          cd qemu-test
+          timeout 120 ./run.sh > boot.log 2>&1 < /dev/null || true
+          cat boot.log
+          grep -q "CLLD" boot.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: clld-qemu-test
+          path: |
+            qemu-test/Image
+            qemu-test/initramfs.cpio.gz
+            qemu-test/run.sh
+            qemu-test/boot.log
+
+  kernel:
+    name: Kernel + firmware Raspberry Pi 4
+    needs: lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependências
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu bc bison flex libssl-dev libelf-dev git
+      - name: Preparar diretorias
+        run: mkdir -p "$CLLD"/{sources,bootfiles}
+      - name: Compilar kernel e juntar firmware
+        run: chmod +x *.sh && CROSS=aarch64-linux-gnu- ./03-kernel-firmware.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clld-rpi4-boot
+          path: ${{ env.CLLD }}/bootfiles
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clld-rpi4-modules
+          path: ${{ env.CLLD }}/lib/modules
+
+  toolchain:
+    name: Cross-toolchain LFS (opcional)
+    if: github.event_name == 'workflow_dispatch' && inputs.toolchain
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependências
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential bison gawk texinfo flex bc git rsync parted \
+            dosfstools e2fsprogs openssl qemu-user-static binfmt-support libssl-dev wget
+      - name: Compilar toolchain
+        run: |
+          chmod +x *.sh
+          sudo mkdir -p "$CLLD" && sudo chown "$USER" "$CLLD"
+          ./01-toolchain.sh
+      - name: Empacotar
+        run: tar -C "$CLLD" -czf clld-tools.tar.gz tools usr lib
+      - uses: actions/upload-artifact@v4
+        with:
+          name: clld-toolchain
+          path: clld-tools.tar.gz
